@@ -14,6 +14,7 @@ public class Statistics {
         return c_time;
     }
 
+    @SuppressWarnings("unused")
     public String getC_figi() {
         return c_figi;
     }

@@ -66,7 +66,7 @@ class Stat extends React.Component {
   render() {
     return (
       <div>
-        <div className="col-md-3">
+        <div className="col-md-5">
           <h4 className="mt-3">Overall statistics</h4>
           <StatInstrumentCandles totalInstruments={this.state.totalInstruments} totalCandles={this.state.totalCandles}/>
         </div>

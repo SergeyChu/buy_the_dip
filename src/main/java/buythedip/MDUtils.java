@@ -13,14 +13,16 @@ import java.util.stream.StreamSupport;
 @Component
 public class MDUtils {
     @Autowired
+    @SuppressWarnings("unused")
     private InstrumentsRepository mInstrumentRepository;
     @Autowired
+    @SuppressWarnings("unused")
     private CandlesRepository mCandlesRepository;
     private Iterable<InstrumentJPA> tInternalInstrumentsList;
     private final Logger mLg = LoggerSingleton.getInstance();
     private final Map<String, String> figiTicker = new HashMap<>();
 
-
+    @SuppressWarnings("unused")
     public List<CandlesJPA> getDailyDip(Integer pPercentageThresholdDip, Integer pPercThresholdRestore) {
 
         tInternalInstrumentsList = mInstrumentRepository.findAll();
@@ -60,6 +62,7 @@ public class MDUtils {
         return tResult;
     }
 
+    @SuppressWarnings("unused")
     public List<Trend> getTrendDip(Integer pPercentageThresholdDip, Integer pPercThresholdRestore,
                             Integer pDaysToBreakTrend, Integer pMinTrendDays) {
 
@@ -157,6 +160,7 @@ public class MDUtils {
         return firstCandle.getcClosePrice().doubleValue() > secondCandle.getcClosePrice().doubleValue();
     }
 
+    @SuppressWarnings("unused")
     public void printTrends(List<Trend> trends) {
         for (InstrumentJPA tInst : tInternalInstrumentsList) {
             figiTicker.put(tInst.getFigi(), tInst.getTicker());

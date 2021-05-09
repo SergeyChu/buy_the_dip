@@ -13,44 +13,46 @@ import org.springframework.web.context.request.async.DeferredResult;
 
 
 @RestController
+@SuppressWarnings("unused")
 class MainController {
     @Autowired
+    @SuppressWarnings("unused")
     private InstrumentsRepository mInstrumentRepository;
     @Autowired
+    @SuppressWarnings("unused")
     private CandlesRepository mCandlesRepository;
     private final Logger mLg = LoggerSingleton.getInstance();
 
     @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/api/dailydip")
+    @SuppressWarnings("unused")
     List<CandlesJPA> getCandles() {
         return getDailyDip(20, 10);
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/api/statistics")
+    @SuppressWarnings("unused")
     StatisticsContainer getStat() {
         return getStatistics();
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping(value = "/api/refresh/instruments")
+    @SuppressWarnings("unused")
     DeferredResult<ResponseEntity<InstrumentRefreshResponse>> updateInstruments() {
         return InstrumentRefresher.getInstance().refresh();
     }
 
-//    @CrossOrigin(origins = "http://localhost:3000")
-//    @PostMapping(value = "/api/refresh/instrumentscl")
-//    Callable<String> updateInstrumentsCallable() {
-//        return InstrumentRefresher.getInstance().refreshCallable();
-//    }
-
     @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/api/refresh/instruments/updatestatus")
+    @SuppressWarnings("unused")
     String getInstrumentUpdateStatus() {
         return InstrumentRefresher.getInstance().getCurrentStatus();
     }
 
     @RequestMapping("/")
+    @SuppressWarnings("unused")
     public String index() {
         return "I'm working!";
     }

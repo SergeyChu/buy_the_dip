@@ -2,6 +2,7 @@ import React from 'react';
 import ProgressBar from 'react-bootstrap/ProgressBar'
 import Popup from 'reactjs-popup';
 import 'reactjs-popup/dist/index.css';
+import NewInstruments from "./NewInstruments"
 
 class StatInstrumentCandles extends React.Component {
 
@@ -11,12 +12,14 @@ class StatInstrumentCandles extends React.Component {
       instrumentRefreshProgress: 0,
       instrumentRefreshCurrentMessage: "",
       isInstrumentPopupOpen: false,
-      isInstrumentRefreshActive: false
+      isInstrumentRefreshActive: false,
+      instrumentsFetched: [],
     };
 
     this.refreshInstruments = this.refreshInstruments.bind(this);
     this.closeInstrumentPopup = this.closeInstrumentPopup.bind(this);
     this.pollRefresh = this.pollRefresh.bind(this);
+    this.closeInstrumentPopup = this.closeInstrumentPopup.bind(this);
   }
 
   sleep = timeoutMs => new Promise(resolve => setTimeout(resolve, timeoutMs))
@@ -51,16 +54,23 @@ class StatInstrumentCandles extends React.Component {
       instrumentRefreshCurrentMessage: "Refresh is initiated",
       isInstrumentPopupOpen: true,
       isInstrumentRefreshActive: true,
-      instrumentRefreshProgress: 0
+      instrumentRefreshProgress: 0,
+      instrumentsFetched: []
     }, this.pollRefresh); 
   
     fetch('http://localhost:8080/api/refresh/instruments', postRequestOptions)
-    .then(response => response.text())
-    .then(respText => {
-      console.log(respText)
+    .then(response => response.json())
+    .then(rspJson => {
+      console.log(rspJson)
+      
+      var tMessage = rspJson.mStatusText;
+      if (rspJson.mNewEntities && rspJson.mNewEntities.length > 0) {
+        tMessage += ", " + rspJson.mNewEntities.length + " new instrument(s) were added";
+      }
+
       this.setState({
-          instrumentRefreshCurrentMessage: respText,
-          isInstrumentPopupOpen: false,
+          instrumentRefreshCurrentMessage: tMessage,
+          instrumentsFetched: rspJson.mNewEntities,
           isInstrumentRefreshActive: false,
           instrumentRefreshProgress: 100
         })
@@ -78,8 +88,9 @@ class StatInstrumentCandles extends React.Component {
 
   closeInstrumentPopup() {
     this.setState({
+      isInstrumentPopupOpen: false,
+      isInstrumentRefreshActive: false,
       instrumentRefreshCurrentMessage: "",
-      isInstrumentPopupOpen: false
     });
   }
   
@@ -90,9 +101,13 @@ class StatInstrumentCandles extends React.Component {
             Total instruments
             <span className="badge badge-primary badge-pill">{this.props.totalInstruments}</span>
             <button type="button" className="btn btn-outline-primary" onClick={this.refreshInstruments}>Refresh</button>
-            <Popup open={this.state.isInstrumentPopupOpen} position="right center" onClose={this.closeInstrumentPopup} modal>
+            <Popup open={this.state.isInstrumentPopupOpen} position="right center" className="text-center" onClose={this.closeInstrumentPopup} modal>
+              <div className="text-center">
                 <h6>{this.state.instrumentRefreshCurrentMessage}</h6>
               <ProgressBar now={this.state.instrumentRefreshProgress} label={`${this.state.instrumentRefreshProgress}%`}/>
+              <NewInstruments instruments={this.state.instrumentsFetched}/>
+              <button type="button" className="btn btn-sm mt-2 mb-1" onClick={this.closeInstrumentPopup}>Close</button>
+              </div>
             </Popup>
           </li>
           <li className="list-group-item d-flex justify-content-between align-items-center" id="total_candles">
