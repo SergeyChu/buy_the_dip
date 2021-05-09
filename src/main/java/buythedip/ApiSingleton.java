@@ -10,7 +10,7 @@ public class ApiSingleton {
     private static volatile OpenApi mApi;
     //Crappy logger which is required by Tikoff API
     private static final Logger mLg = Logger.getLogger(ApiSingleton.class.getName());
-    private static final String mToken = "t.Hb-z9j8BJYSwza8hM_v3YaE4WMuQX1TPUkjw9z2g_ZAIYen7LcBbjbX5yAofBjWxzOfpwPyuhP4GsedF8GmHqw";
+    private static final String mToken = "PUT_YOUR_TOKEN";
     public static OpenApi getInstance() {
         if (mApi == null) {
             synchronized (ApiSingleton.class) {
