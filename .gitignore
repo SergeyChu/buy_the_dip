@@ -45,3 +45,11 @@ client\buy-the-dip\public
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+.gradle/
+.idea/
+build/
+gen_xml_backup.txt
+gradle/
+tinkoff_tokens.txt
+
