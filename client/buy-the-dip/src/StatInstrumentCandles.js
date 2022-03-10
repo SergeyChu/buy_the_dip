@@ -101,7 +101,7 @@ class StatInstrumentCandles extends React.Component {
             Total instruments
             <span className="badge badge-primary badge-pill">{this.props.totalInstruments}</span>
             <button type="button" className="btn btn-outline-primary" onClick={this.refreshInstruments}>Refresh</button>
-            <Popup open={this.state.isInstrumentPopupOpen} position="right center" className="text-center" onClose={this.closeInstrumentPopup} modal>
+            <Popup open={this.state.isInstrumentPopupOpen}  contentStyle={{width: "20%"}} position="right center" className="text-center" onClose={this.closeInstrumentPopup} modal>
               <div className="text-center">
                 <h6>{this.state.instrumentRefreshCurrentMessage}</h6>
               <ProgressBar now={this.state.instrumentRefreshProgress} label={`${this.state.instrumentRefreshProgress}%`}/>

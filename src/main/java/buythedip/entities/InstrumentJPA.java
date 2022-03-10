@@ -1,5 +1,5 @@
 package buythedip.entities;
-import ru.tinkoff.invest.openapi.models.market.Instrument;
+import ru.tinkoff.piapi.contract.v1.Share;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -21,12 +21,12 @@ public class InstrumentJPA {
 
     public InstrumentJPA() {}
 
-    public InstrumentJPA(Instrument pInst) {
-        ticker = pInst.ticker;
-        figi = pInst.figi;
-        isin = pInst.isin;
-        currency = pInst.currency == null ? "" : pInst.currency.toString();
-        name = pInst.name;
+    public InstrumentJPA(Share pInst) {
+        ticker = pInst.getTicker();
+        figi = pInst.getFigi();
+        isin = pInst.getIsin();
+        currency = pInst.getCurrency();
+        name = pInst.getName();
         adddate = LocalDate.now().toString();
     }
 

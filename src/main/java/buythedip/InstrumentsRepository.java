@@ -6,8 +6,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface InstrumentsRepository extends CrudRepository<InstrumentJPA, Long> {
-    InstrumentJPA findById(long pId);
-    InstrumentJPA findByTicker(String pTicker);
-    InstrumentJPA findByFigi(String pTicker);
+    InstrumentJPA findById(long id);
+    InstrumentJPA findByTicker(String ticker);
+    InstrumentJPA findByFigi(String figi);
     long count();
 }

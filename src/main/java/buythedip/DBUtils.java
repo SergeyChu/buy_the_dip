@@ -2,138 +2,160 @@ package buythedip;
 
 import buythedip.entities.CandlesJPA;
 import buythedip.entities.InstrumentJPA;
+import buythedip.refreshers.InstrumentRefreshStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import ru.tinkoff.invest.openapi.OpenApi;
-import ru.tinkoff.invest.openapi.models.market.*;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.apache.logging.log4j.Logger;
+import ru.tinkoff.piapi.contract.v1.CandleInterval;
+import ru.tinkoff.piapi.contract.v1.HistoricCandle;
+import ru.tinkoff.piapi.contract.v1.Share;
+import ru.tinkoff.piapi.core.InvestApi;
 
 
 @Component
 public class DBUtils {
 
     @Autowired
-    private InstrumentsRepository mInstrumentRepository;
+    @SuppressWarnings("unused")
+    private InstrumentsRepository instrumentRepository;
+
     @Autowired
-    private CandlesRepository mCandlesRepository;
-    private Iterable<InstrumentJPA> tInternalInstrumentsList;
-    private final Logger mLg = LoggerSingleton.getInstance();
+    @SuppressWarnings("unused")
+    private CandlesRepository candlesRepository;
+    private Iterable<InstrumentJPA> internalInstrumentsList;
+    private final Logger logger = LoggerSingleton.getInstance();
 
     //Retreives all the available instruments from API, updates internal database and returns new ones if appears
-    public List<InstrumentJPA> refreshInstruments() {
-        OpenApi tApi = ApiSingleton.getInstance();
-        mLg.debug("Getting list of stocks from API");
-        InstrumentsList tExternalInstrumentsList = tApi.getMarketContext().getMarketStocks().join();
-        mLg.debug("Getting list of stocks from local store");
-        tInternalInstrumentsList = mInstrumentRepository.findAll();
-        List<InstrumentJPA> tFinalList = tExternalInstrumentsList.instruments.stream()
+    public List<InstrumentJPA> refreshInstruments(InstrumentRefreshStatus status) {
+        InvestApi api = ApiSingleton.getInstance();
+        status.setStatus("Getting list of stocks from API");
+        List<Share> externalInstrumentsList = api.getInstrumentsService().getTradableShares().join();
+        status.setProgress(80);
+
+        status.setStatus("Getting list of stocks from local store and evaluating new ones");
+        internalInstrumentsList = instrumentRepository.findAll();
+        List<InstrumentJPA> finalList = externalInstrumentsList.stream()
                 .map(this::checkInstrumentExists).filter(Objects::nonNull).collect(Collectors.toList());
-        mLg.debug("Total new stocks found: " + tFinalList);
-        for (InstrumentJPA tIns : tFinalList) {
-            mInstrumentRepository.save(tIns);
+        status.setProgress(90);
+
+        if (!finalList.isEmpty()) {
+            logger.debug(() -> String.format("Total new stocks found: %s", finalList));
+            status.setStatus("Total new stocks found: " + finalList + " saving into repository");
+            status.setProgress(95);
+            for (InstrumentJPA ins : finalList) {
+                instrumentRepository.save(ins);
+            }
         }
-        return tFinalList;
+
+        status.setProgress(100);
+        status.setStatus("Done with refresh of instruments");
+        return finalList;
     }
 
-    public void getDailyCandles(List<InstrumentJPA> pInstruments) throws InterruptedException {
-        mLg.info("Getting daily candles for " + pInstruments.size() + " instruments");
-        int tCurrentInd = 0;
-        for (InstrumentJPA tInstr : pInstruments) {
-            boolean tInfoObtained = false;
-            List<Candle> tTempCandles = null;
+    @SuppressWarnings("unused")
+    public void getDailyCandles(List<InstrumentJPA> instruments) throws InterruptedException {
+        logger.info(() -> String.format("Getting daily candles for %d instruments", instruments.size()));
+        AtomicInteger currentInd = new AtomicInteger(0);
+        for (InstrumentJPA instr : instruments) {
+            boolean infoObtained = false;
+            List<HistoricCandle> tempCandles = new ArrayList<>();
             do {
                 try {
-                    tTempCandles = getDailyCandle(tInstr.getFigi());
-                    tInfoObtained = true;
-                    tCurrentInd++;
+                    tempCandles = getCandles(instr.getFigi(), CandleInterval.CANDLE_INTERVAL_DAY, Instant.now().minus(1, ChronoUnit.DAYS));
+                    infoObtained = true;
+                    currentInd.incrementAndGet();
                 }
                 catch (Exception e) {
-                    mLg.warn("Breached the limit, waiting 1 minute and retrying");
+                    logger.warn("Breached the limit, waiting 1 minute and retrying");
                     TimeUnit.MINUTES.sleep(1);
                 }
-            } while (!tInfoObtained);
-            mLg.info("Getting daily candles done for: " + tCurrentInd + "/" + pInstruments.size());
-            if (storeCandles(tTempCandles)) mLg.trace("Saved candle data into DB for " + tInstr.getTicker());
+            } while (!infoObtained);
+            logger.info(() -> String.format("Getting daily candles done for %d from %d instruments", currentInd.intValue(), instruments.size()));
+
+            if (storeCandles(tempCandles, instr.getFigi(), CandleInterval.CANDLE_INTERVAL_DAY.name()))
+                logger.trace(() -> String.format("Saved candle data into DB for %s", instr.getTicker()));
         }
     }
 
-    public static List<Candle> getCustomCandles(String pFigi, OffsetDateTime pDateFrom, OffsetDateTime pDateTo, CandleInterval pCandleInt) {
-        Optional<HistoricalCandles> tCandles = Optional.empty();
+    @SuppressWarnings("unused")
+    public static List<HistoricCandle> getCustomCandles(String figi, Instant dateFrom, Instant dateTo, CandleInterval candleInterval) {
+        List<HistoricCandle> candles = new ArrayList<>();
         try {
-            tCandles = ApiSingleton.getInstance()
-                    .getMarketContext().getMarketCandles(pFigi, pDateFrom, pDateTo, pCandleInt).join();}
+            candles = ApiSingleton.getInstance()
+                    .getMarketDataService().getCandles(figi, dateFrom, dateTo, candleInterval).join();
+        }
         catch (Exception e) {
-            System.out.println("Got exception");
+            System.err.println("Got exception");
             e.printStackTrace();
         }
 
-        return tCandles.map(historicalCandles -> historicalCandles.candles).orElse(null);
+        return candles;
     }
 
-    private boolean compareInstrs(Instrument pInst, InstrumentJPA pInsJPA) {
-        return Objects.equals(pInst.ticker, pInsJPA.getTicker()) &&
-                Objects.equals(pInst.isin, pInsJPA.getIsin()) &&
-                Objects.equals(pInst.figi, pInsJPA.getFigi());
+    private boolean compareInstrs(Share instrument, InstrumentJPA instrumentJPA) {
+        return Objects.equals(instrument.getTicker(), instrumentJPA.getTicker()) &&
+                Objects.equals(instrument.getIsin(), instrumentJPA.getIsin()) &&
+                Objects.equals(instrument.getFigi(), instrumentJPA.getFigi());
     }
 
-    private InstrumentJPA checkInstrumentExists(Instrument pInst) {
-        if (StreamSupport.stream(tInternalInstrumentsList.spliterator(), false)
-                .anyMatch(insJPA -> compareInstrs(pInst, insJPA))) {
+    private InstrumentJPA checkInstrumentExists(Share instrument) {
+        if (StreamSupport.stream(internalInstrumentsList.spliterator(), false)
+                .anyMatch(insJPA -> compareInstrs(instrument, insJPA))) {
             return null;
         } else {
-            assert pInst.currency != null;
-            return new InstrumentJPA(pInst);
+            return new InstrumentJPA(instrument);
         }
     }
 
-    private List<Candle> getDailyCandle(String pFigi) {
-        OffsetDateTime tDateFrom = OffsetDateTime.now().minusYears(1);
-        OffsetDateTime tDateTo = OffsetDateTime.now();
-        CandleInterval tCandleInt = CandleInterval.DAY;
-        Optional<HistoricalCandles> tCandles = Optional.empty();
-        mLg.info("Getting candles for " + pFigi);
+    private List<HistoricCandle> getCandles(String figi, CandleInterval candleInterval, Instant fromDate) {
+        Instant dateTo = Instant.now();
+        List<HistoricCandle> candles = new ArrayList<>();
+        logger.info(() -> String.format("Getting candles for %s", figi));
         try {
-        tCandles = ApiSingleton.getInstance()
-                        .getMarketContext().getMarketCandles(pFigi,tDateFrom,tDateTo, tCandleInt).join();}
+            return ApiSingleton.getInstance().getMarketDataService().getCandles(figi, fromDate, dateTo, candleInterval).join();
+        }
         catch (Exception e) {
-            System.out.println("Got exception");
+            logger.error("Got exception");
             e.printStackTrace();
         }
-
-        return tCandles.map(historicalCandles -> historicalCandles.candles).orElse(null);
+        return candles;
     }
 
-    private boolean storeCandles(List<Candle> pCandlesToStore) {
-        if (pCandlesToStore == null || pCandlesToStore.size() == 0) return false;
-        List<Candle> tNewCandles = pCandlesToStore.stream().filter( tExtCandle ->
-                mCandlesRepository.findBycFigi(tExtCandle.figi).stream()
-                        .filter(tIntCandle -> compareCandles(tIntCandle, tExtCandle)).noneMatch(obj -> true)
+    private boolean storeCandles(List<HistoricCandle> candlesToStore, String figi, String interval) {
+        if (candlesToStore == null || candlesToStore.isEmpty()) return false;
+        List<CandlesJPA> newCandles = candlesToStore.stream().map(historicCandle -> mapToCandleJPA(historicCandle, figi, interval)).filter(candleFromApi ->
+                candlesRepository.findBycFigi(figi).stream()
+                        .filter(candleFromStore -> compareCandles(candleFromStore, candleFromApi)).noneMatch(obj -> true)
         ).collect(Collectors.toList());
-        mLg.info("Total new candles found to store: " + tNewCandles.size());
+        logger.info(() -> String.format("Total new candles found to store: %s", newCandles.size()));
         try {
-            for (Candle tCan : tNewCandles) {
-                mCandlesRepository.save(new CandlesJPA(tCan));
-            }
+            newCandles.forEach(candlesRepository::save);
             return true;
         } catch (IllegalArgumentException e) {
-            mLg.info("Error upon storage of candles data: " + e.getMessage());
+            logger.info(String.format("Error upon storage of candles data: %s", e.getMessage()));
             e.printStackTrace();
             return false;
         }
     }
 
-    private boolean compareCandles(CandlesJPA pJpa, Candle pCan) {
-        return (Objects.equals(pJpa.getcFigi(), pCan.figi) &&
-                Objects.equals(pJpa.getcInterval(), pCan.interval.name()) &&
-                Objects.equals(pJpa.getcTime(), pCan.time.format(DateTimeFormatter.BASIC_ISO_DATE))
+    private boolean compareCandles(CandlesJPA oldCandle, CandlesJPA newCandle) {
+        return (Objects.equals(oldCandle.getcFigi(), newCandle.getcFigi()) &&
+                Objects.equals(oldCandle.getcInterval(), newCandle.getcInterval()) &&
+                Objects.equals(oldCandle.getcTime(), newCandle.getcTime())
                 );
+    }
+
+    private CandlesJPA mapToCandleJPA(HistoricCandle historicCandle, String figi, String interval) {
+        return new CandlesJPA(historicCandle, figi, interval);
     }
 }

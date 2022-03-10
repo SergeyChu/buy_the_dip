@@ -45,8 +45,11 @@ dependencies {
         exclude module: 'ch.qos.logback'
         exclude module: 'spring-boot-starter-logging'
     }
-    compile group: 'ru.tinkoff.invest', name: 'openapi-java-sdk-java8', version: '0.4.1'
-    compile group: 'ru.tinkoff.invest', name: 'openapi-java-sdk-core', version: '0.4.1'
-    compile group: 'ru.tinkoff.invest', name: 'openapi-java-sdk', version: '0.4.1', ext: 'pom'
+
+    implementation group: 'io.grpc', name: 'grpc-api', version: '1.43.0'
+    implementation group: 'ru.tinkoff.piapi', name: 'java-sdk-core', version: '1.0-M2'
+    implementation group: 'ru.tinkoff.piapi', name: 'java-sdk-grpc-contract', version: '1.0-M2'
+    implementation group: 'ru.tinkoff.piapi', name: 'java-sdk', version: '1.0-M2', ext: 'pom'
+
     implementation 'org.json:json:20210307'
 }

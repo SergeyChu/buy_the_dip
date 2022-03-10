@@ -1,6 +1,5 @@
 package buythedip.entities;
 
-import ru.tinkoff.invest.openapi.models.market.CandleInterval;
 
 public class Trend {
     CandlesJPA mFirstCandle;

@@ -1,10 +1,13 @@
 package buythedip.entities;
 
-import ru.tinkoff.invest.openapi.models.market.Candle;
+
+import ru.tinkoff.piapi.contract.v1.HistoricCandle;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
-import java.time.format.DateTimeFormatter;
+
+import static ru.tinkoff.piapi.core.utils.DateUtils.timestampToString;
+import static ru.tinkoff.piapi.core.utils.MapperUtils.quotationToBigDecimal;
 
 @Entity
 @Table(
@@ -44,7 +47,7 @@ public class CandlesJPA {
         return cLowestPrice;
     }
 
-    public BigDecimal getcValue() {
+    public Long getcValue() {
         return cValue;
     }
 
@@ -58,19 +61,19 @@ public class CandlesJPA {
     private BigDecimal cClosePrice;
     private BigDecimal cHighestPrice;
     private BigDecimal cLowestPrice;
-    private BigDecimal cValue;
+    private Long cValue;
     private String cTime;
 
     CandlesJPA() {}
 
-    public CandlesJPA(Candle pCan) {
-        cFigi = pCan.figi;
-        cInterval = pCan.interval.name();
-        cOpenPrice = pCan.openPrice;
-        cClosePrice = pCan.closePrice;
-        cHighestPrice = pCan.highestPrice;
-        cLowestPrice = pCan.lowestPrice;
-        cValue = pCan.tradesValue;
-        cTime = pCan.time.format(DateTimeFormatter.BASIC_ISO_DATE);
+    public CandlesJPA(HistoricCandle historicCandle, String figi, String interval) {
+        cFigi = figi;
+        cInterval = interval;
+        cOpenPrice = quotationToBigDecimal(historicCandle.getOpen());
+        cClosePrice = quotationToBigDecimal(historicCandle.getClose());
+        cHighestPrice = quotationToBigDecimal(historicCandle.getHigh());
+        cLowestPrice = quotationToBigDecimal(historicCandle.getLow());
+        cValue = historicCandle.getVolume();
+        cTime = timestampToString(historicCandle.getTime());
     }
 }

@@ -17,11 +17,15 @@ import org.springframework.web.context.request.async.DeferredResult;
 class MainController {
     @Autowired
     @SuppressWarnings("unused")
-    private InstrumentsRepository mInstrumentRepository;
+    private InstrumentsRepository instrumentRepository;
     @Autowired
     @SuppressWarnings("unused")
-    private CandlesRepository mCandlesRepository;
-    private final Logger mLg = LoggerSingleton.getInstance();
+    private CandlesRepository candlesRepository;
+    @Autowired
+    @SuppressWarnings("unused")
+    private InstrumentRefresher instrumentRefresher;
+
+    private final Logger logger = LoggerSingleton.getInstance();
 
     @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/api/dailydip")
@@ -41,14 +45,14 @@ class MainController {
     @PostMapping(value = "/api/refresh/instruments")
     @SuppressWarnings("unused")
     DeferredResult<ResponseEntity<InstrumentRefreshResponse>> updateInstruments() {
-        return InstrumentRefresher.getInstance().refresh();
+        return instrumentRefresher.refresh();
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/api/refresh/instruments/updatestatus")
     @SuppressWarnings("unused")
     String getInstrumentUpdateStatus() {
-        return InstrumentRefresher.getInstance().getCurrentStatus();
+        return instrumentRefresher.getCurrentStatus();
     }
 
     @RequestMapping("/")
@@ -59,21 +63,21 @@ class MainController {
 
     private List<CandlesJPA> getDailyDip(Integer pPercentageThresholdDip, Integer pPercThresholdRestore) {
 
-        Iterable<InstrumentJPA> tInternalInstrumentsList = mInstrumentRepository.findAll();
+        Iterable<InstrumentJPA> tInternalInstrumentsList = instrumentRepository.findAll();
         List<CandlesJPA> tResult = new LinkedList<>();
 
         if ( StreamSupport.stream(tInternalInstrumentsList.spliterator(), false).count() == 0) {
-            mLg.warn("Empty instruments list, exiting");
+            logger.warn("Empty instruments list, exiting");
             return tResult;
         }
 
         for (InstrumentJPA tInst : tInternalInstrumentsList) {
-            mLg.trace("Checking md for instrument: " + tInst.getTicker());
+            logger.trace(() -> String.format("Checking md for instrument: %s" , tInst.getTicker()));
             if (Objects.equals(tInst.getCurrency(), "RUB")) continue;
             String lastDipMessage = null;
             CandlesJPA tLastCandle = null;
             CandlesJPA tLastDipCandle = null;
-            for (CandlesJPA tCand : mCandlesRepository.findBycFigi(tInst.getFigi())) {
+            for (CandlesJPA tCand : candlesRepository.findBycFigi(tInst.getFigi())) {
                 double tOpPx = tCand.getcOpenPrice().doubleValue();
                 double tClPx = tCand.getcClosePrice().doubleValue();
                 if (tOpPx * pPercentageThresholdDip/100 <=  tOpPx - tClPx) {
@@ -87,7 +91,7 @@ class MainController {
             }
             if (lastDipMessage != null) {
                 if (tLastDipCandle.getcClosePrice().doubleValue() * (100 + pPercThresholdRestore)/100 > tLastCandle.getcClosePrice().doubleValue()) {
-                    mLg.info(lastDipMessage);
+                    logger.info(lastDipMessage);
                     tResult.add(tLastDipCandle);
                 }
 
@@ -101,15 +105,15 @@ class MainController {
     }
 
     private long getTotalInstruments() {
-        return mInstrumentRepository.count();
+        return instrumentRepository.count();
     }
 
     private long getTotalCandles() {
-        return mCandlesRepository.count();
+        return candlesRepository.count();
     }
 
     private Map<String, Long> getCandlesByTime() {
-        List<Statistics> tStatList = mCandlesRepository.findStats();
+        List<Statistics> tStatList = candlesRepository.findStats();
         final Map<String, Long> tGroupedResult = new HashMap<>();
         tStatList.forEach(s -> {
             if(tGroupedResult.containsKey(s.getC_time())) {
