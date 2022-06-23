@@ -3,6 +3,9 @@ import StatInstrumentCandles from './StatInstrumentCandles.js'
 import { usePromiseTracker } from "react-promise-tracker"
 import { trackPromise } from 'react-promise-tracker'
 import Loader from 'react-loader-spinner'
+import 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
+import BootstrapTable from 'react-bootstrap-table-next';
+
 
 const LoadingIndicator = props => {
      const { promiseInProgress } = usePromiseTracker();
@@ -28,7 +31,17 @@ class Stat extends React.Component {
     this.state = {
       totalInstruments: 0,
       totalCandles: 0,
-      candlesFreshness: []
+      candlesFreshness: [],
+      instrumentsFreshness: [],
+      columns: [{
+        dataField: 'date',
+        text: 'Date',
+        sort: true
+      }, {
+        dataField: 'count',
+        text: 'Count',
+        sort: true
+      }]
     };
   }
 
@@ -44,16 +57,8 @@ class Stat extends React.Component {
             this.setState({
               totalInstruments: response.totalInstruments,
               totalCandles: response.totalCandles,
-              candlesFreshness: Object.keys(response.candlesFreshness).map(
-                function(keyName, keyIndex) {
-                return(
-                  <tr key={keyIndex}>
-                    <td key="1">{keyName}</td>
-                    <td key="2">{response.candlesFreshness[keyName]}</td>
-                  </tr>
-                )
-                }
-              )
+              candlesFreshness: response.candlesFreshness,
+              instrumentsFreshness: response.instrumentsFreshness
             });
         })
         .catch(error => {
@@ -70,26 +75,17 @@ class Stat extends React.Component {
           <h4 className="mt-3">Overall statistics</h4>
           <StatInstrumentCandles totalInstruments={this.state.totalInstruments} totalCandles={this.state.totalCandles}/>
         </div>
-        <div className="col-md-2">
-          <h4 className="mt-3">Candles freshness</h4>
-          <LoadingIndicator/>
-          <table id="dtBasicExample" className="table table-striped table-bordered table-sm" cellSpacing="0" width="50%">
-            <thead>
-              <tr>
-                <th className="th-sm">Date</th>
-                <th className="th-sm">Count</th>
-              </tr>
-            </thead>
-            <tbody>
-            {this.state.candlesFreshness}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th className="th-sm">Date</th>
-                <th className="th-sm">Count</th>
-              </tr>
-            </tfoot>
-          </table>
+        <div class="row ml-1">
+          <div className="col-md-3">
+            <h6 className="mt-3">Latest candles dates per instrument overview</h6>
+            <LoadingIndicator/>
+            <BootstrapTable keyField='id' data={ this.state.candlesFreshness } columns={ this.state.columns } />
+          </div>
+          <div className="col-md-3">
+            <h6 className="mt-3">Instruments creation dates overview</h6>
+            <LoadingIndicator/>
+            <BootstrapTable keyField='id' data={ this.state.instrumentsFreshness } columns={ this.state.columns } />
+          </div>
         </div>
       </div>
     );

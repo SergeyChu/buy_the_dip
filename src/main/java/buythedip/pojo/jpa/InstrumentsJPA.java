@@ -1,16 +1,18 @@
-package buythedip.entities;
+package buythedip.pojo.jpa;
 import ru.tinkoff.piapi.contract.v1.Share;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-public class InstrumentJPA {
+@Table(
+        indexes = {
+                @Index(columnList = "figi", name = "adddate")
+        })
+public class InstrumentsJPA {
     @Id
     @GeneratedValue(strategy=GenerationType.AUTO)
+    @SuppressWarnings("unused")
     private Integer stockid;
     private String ticker;
     private String figi;
@@ -19,9 +21,10 @@ public class InstrumentJPA {
     private String name;
     private String adddate;
 
-    public InstrumentJPA() {}
+    @SuppressWarnings("unused")
+    public InstrumentsJPA() {}
 
-    public InstrumentJPA(Share pInst) {
+    public InstrumentsJPA(Share pInst) {
         ticker = pInst.getTicker();
         figi = pInst.getFigi();
         isin = pInst.getIsin();
@@ -30,7 +33,7 @@ public class InstrumentJPA {
         adddate = LocalDate.now().toString();
     }
 
-    public InstrumentJPA(String pTicker, String pFigi, String pIsin, String pCurrency, String pName) {
+    public InstrumentsJPA(String pTicker, String pFigi, String pIsin, String pCurrency, String pName) {
         ticker = pTicker;
         figi = pFigi;
         isin = pIsin;
@@ -39,6 +42,7 @@ public class InstrumentJPA {
         adddate = LocalDate.now().toString();
     }
 
+    @SuppressWarnings("unused")
     public Integer getStockid() {
         return stockid;
     }
@@ -59,10 +63,12 @@ public class InstrumentJPA {
         return currency;
     }
 
+    @SuppressWarnings("unused")
     public String getName() {
         return name;
     }
 
+    @SuppressWarnings("unused")
     public String getAddDate() {
         return adddate;
     }

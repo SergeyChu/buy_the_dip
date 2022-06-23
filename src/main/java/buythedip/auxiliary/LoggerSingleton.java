@@ -1,4 +1,4 @@
-package buythedip;
+package buythedip.auxiliary;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;

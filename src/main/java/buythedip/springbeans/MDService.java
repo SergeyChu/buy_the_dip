@@ -1,59 +1,65 @@
-package buythedip;
+package buythedip.springbeans;
 
-import buythedip.entities.CandlesJPA;
-import buythedip.entities.InstrumentJPA;
-import buythedip.entities.Trend;
+import buythedip.auxiliary.CandlesComparator;
+import buythedip.auxiliary.LoggerSingleton;
+import buythedip.pojo.jpa.CandlesJPA;
+import buythedip.pojo.jpa.InstrumentsJPA;
+import buythedip.pojo.dto.Trend;
+import buythedip.springbeans.repositories.CandlesRepository;
+import buythedip.springbeans.repositories.InstrumentsRepository;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.StreamSupport;
 
-@Component
-public class MDUtils {
+@Service
+public class MDService {
     @Autowired
     @SuppressWarnings("unused")
-    private InstrumentsRepository mInstrumentRepository;
+    private InstrumentsRepository instrumentsRepository;
+
     @Autowired
     @SuppressWarnings("unused")
-    private CandlesRepository mCandlesRepository;
-    private Iterable<InstrumentJPA> tInternalInstrumentsList;
-    private final Logger mLg = LoggerSingleton.getInstance();
+    private CandlesRepository candlesRepository;
+
+    private Iterable<InstrumentsJPA> internalInstrumentsList;
+    private final Logger logger = LoggerSingleton.getInstance();
     private final Map<String, String> figiTicker = new HashMap<>();
 
     @SuppressWarnings("unused")
     public List<CandlesJPA> getDailyDip(Integer pPercentageThresholdDip, Integer pPercThresholdRestore) {
 
-        tInternalInstrumentsList = mInstrumentRepository.findAll();
+        internalInstrumentsList = instrumentsRepository.findAll();
         List<CandlesJPA> tResult = new LinkedList<>();
 
-        if ( StreamSupport.stream(tInternalInstrumentsList.spliterator(), false).count() == 0) {
-            mLg.warn("Empty instruments list, exiting");
+        if ( StreamSupport.stream(internalInstrumentsList.spliterator(), false).count() == 0) {
+            logger.warn("Empty instruments list, exiting");
             return tResult;
         }
 
-        for (InstrumentJPA tInst : tInternalInstrumentsList) {
-            mLg.trace("Checking md for instrument: " + tInst.getTicker());
+        for (InstrumentsJPA tInst : internalInstrumentsList) {
+            logger.trace("Checking md for instrument: " + tInst.getTicker());
             if (Objects.equals(tInst.getCurrency(), "RUB")) continue;
             String lastDipMessage = null;
             CandlesJPA tLastCandle = null;
             CandlesJPA tLastDipCandle = null;
-            for (CandlesJPA tCand : mCandlesRepository.findBycFigi(tInst.getFigi())) {
-                double tOpPx = tCand.getcOpenPrice().doubleValue();
-                double tClPx = tCand.getcClosePrice().doubleValue();
+            for (CandlesJPA tCand : candlesRepository.findByfigi(tInst.getFigi())) {
+                double tOpPx = tCand.getOpenPrice().doubleValue();
+                double tClPx = tCand.getClosePrice().doubleValue();
                 if (tOpPx * pPercentageThresholdDip/100 <=  tOpPx - tClPx) {
-                    lastDipMessage = "Got the dip exceeding " + pPercentageThresholdDip + " % " + tCand.getcTime() + " " + tInst.getTicker() + " " + tCand.getcOpenPrice() + " " + tCand.getcClosePrice();
+                    lastDipMessage = "Got the dip exceeding " + pPercentageThresholdDip + " % " + tCand.getTime() + " " + tInst.getTicker() + " " + tCand.getOpenPrice() + " " + tCand.getClosePrice();
                     tLastDipCandle = tCand;
                 }
                 if (tLastCandle == null) tLastCandle = tCand;
-                if (tLastCandle.getcTime().compareTo(tCand.getcTime()) < 0) {
+                if (tLastCandle.getTime().compareTo(tCand.getTime()) < 0) {
                     tLastCandle = tCand;
                 }
             }
             if (lastDipMessage != null) {
-                if (tLastDipCandle.getcClosePrice().doubleValue() * (100 + pPercThresholdRestore)/100 > tLastCandle.getcClosePrice().doubleValue()) {
-                    mLg.info(lastDipMessage);
+                if (tLastDipCandle.getClosePrice().doubleValue() * (100 + pPercThresholdRestore)/100 > tLastCandle.getClosePrice().doubleValue()) {
+                    logger.info(lastDipMessage);
                     tResult.add(tLastDipCandle);
                 }
 
@@ -66,22 +72,22 @@ public class MDUtils {
     public List<Trend> getTrendDip(Integer pPercentageThresholdDip, Integer pPercThresholdRestore,
                             Integer pDaysToBreakTrend, Integer pMinTrendDays) {
 
-        tInternalInstrumentsList = mInstrumentRepository.findAll();
+        internalInstrumentsList = instrumentsRepository.findAll();
         List<Trend> tTrends = new LinkedList<Trend>();
 
-        long instrumentsSize = StreamSupport.stream(tInternalInstrumentsList.spliterator(), false).count();
+        long instrumentsSize = StreamSupport.stream(internalInstrumentsList.spliterator(), false).count();
         if (instrumentsSize == 0) {
-            mLg.warn("Empty instruments list, exiting");
+            logger.warn("Empty instruments list, exiting");
             return tTrends;
         }
 
         int currInst = 1;
-        for (InstrumentJPA tInst : tInternalInstrumentsList) {
-            mLg.info("Checking md for instrument: " + tInst.getTicker() + " " + currInst + "/" + instrumentsSize);
+        for (InstrumentsJPA tInst : internalInstrumentsList) {
+            logger.info(String.format("Checking md for instrument: %s %d/%d", tInst.getTicker(), currInst, instrumentsSize));
             currInst++;
             if (Objects.equals(tInst.getCurrency(), "RUB")) continue;
 
-            List<CandlesJPA> tCandles = mCandlesRepository.findBycFigi(tInst.getFigi());
+            List<CandlesJPA> tCandles = candlesRepository.findByfigi(tInst.getFigi());
             tCandles.sort(new CandlesComparator());
 
             int tIndexTrendBreach = 0;
@@ -115,7 +121,7 @@ public class MDUtils {
                         if (tTrendDuration >= pMinTrendDays) {
                             if (currDipPerc >= pPercentageThresholdDip && currRestorePerc >= pPercThresholdRestore) {
                                 tTrends.add(new Trend(tFirstCandleInTrend, tLastCandleInTrend,
-                                        tTrendDuration, tFirstCandleInTrend.getcInterval(), currDipPerc, currRestorePerc));
+                                        tTrendDuration, tFirstCandleInTrend.getInterval(), currDipPerc, currRestorePerc));
                             }
                         }
                         tFirstCandleInTrend = null;
@@ -133,7 +139,7 @@ public class MDUtils {
                 if (tFirstCandleInTrend != null && currDipPerc >= pPercentageThresholdDip && currRestorePerc > pPercThresholdRestore) {
                     if (tTrendDuration >= pMinTrendDays) {
                         tTrends.add(new Trend(tFirstCandleInTrend, tLastCandleInTrend,
-                                tTrendDuration, tFirstCandleInTrend.getcInterval(), currDipPerc, currRestorePerc));
+                                tTrendDuration, tFirstCandleInTrend.getInterval(), currDipPerc, currRestorePerc));
                     }
                 }
             }
@@ -144,8 +150,8 @@ public class MDUtils {
 
     private int getPercentageDip(CandlesJPA firstCandle, CandlesJPA secondCandle) {
         if (secondCandle == null || firstCandle == null) return 0;
-        double firstPx = firstCandle.getcClosePrice().doubleValue();
-        double secondPx = secondCandle.getcClosePrice().doubleValue();
+        double firstPx = firstCandle.getClosePrice().doubleValue();
+        double secondPx = secondCandle.getClosePrice().doubleValue();
         // Return difference in percents between closing prices
         return (int) Math.round((firstPx - secondPx)/firstPx * 100);
     }
@@ -154,19 +160,19 @@ public class MDUtils {
         //If first candle is not initalized assuming that the candle starts trend
         if (firstCandle == null) return true;
         if (secondCandle == null) {
-            mLg.error("Current candle can't be null");
+            logger.error("Current candle can't be null");
             return false;
         }
-        return firstCandle.getcClosePrice().doubleValue() > secondCandle.getcClosePrice().doubleValue();
+        return firstCandle.getClosePrice().doubleValue() > secondCandle.getClosePrice().doubleValue();
     }
 
     @SuppressWarnings("unused")
     public void printTrends(List<Trend> trends) {
-        for (InstrumentJPA tInst : tInternalInstrumentsList) {
+        for (InstrumentsJPA tInst : internalInstrumentsList) {
             figiTicker.put(tInst.getFigi(), tInst.getTicker());
         }
         for (Trend tmpTrend : trends) {
-            mLg.info(resolveTicker(tmpTrend.getmFirstCandle().getcFigi()) + " " + tmpTrend.getmDipPercentage() + " " + tmpTrend.getmRestorePercentage());
+            logger.info(resolveTicker(tmpTrend.getFirstCandle().getFigi()) + " " + tmpTrend.getDipPercentage() + " " + tmpTrend.getRestorePercentage());
         }
     }
 

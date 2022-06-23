@@ -1,4 +1,4 @@
-package buythedip;
+package buythedip.auxiliary;
 
 import ru.tinkoff.piapi.core.InvestApi;
 

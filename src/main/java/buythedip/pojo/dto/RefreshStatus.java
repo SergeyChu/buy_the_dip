@@ -1,14 +1,14 @@
-package buythedip.refreshers;
+package buythedip.pojo.dto;
 
-import buythedip.LoggerSingleton;
+import buythedip.auxiliary.LoggerSingleton;
 
-public class InstrumentRefreshStatus {
+public class RefreshStatus {
     private String status;
     private Integer progress;
 
-    public InstrumentRefreshStatus(String status, Integer progress) {
-        this.status = status;
-        this.progress = progress;
+    public RefreshStatus() {
+        this.status = "";
+        this.progress = 0;
     }
 
     public void setStatus(String status) {
@@ -19,6 +19,7 @@ public class InstrumentRefreshStatus {
     public void setProgress(Integer progress) {
         this.progress = progress;
     }
+
 
     public String getStatus() {
         return status;
