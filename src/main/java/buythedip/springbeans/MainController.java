@@ -4,7 +4,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import buythedip.auxiliary.LoggerSingleton;
 import buythedip.pojo.dto.GroupedStatistics;
 import buythedip.pojo.dto.InstrumentRefreshResponse;
 import buythedip.pojo.dto.RefreshResponse;
@@ -16,6 +15,7 @@ import buythedip.springbeans.repositories.InstrumentsRepository;
 import buythedip.springbeans.refreshers.CandleRefresher;
 import buythedip.springbeans.refreshers.InstrumentRefresher;
 import buythedip.springbeans.repositories.CandlesRepository;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +42,7 @@ class MainController {
     private final StatisticsContainer statistics =
             new StatisticsContainer(0, 0, null, null);
 
-    private final Logger logger = LoggerSingleton.getInstance();
+    private final Logger logger = LogManager.getLogger(MainController.class);
 
     @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/api/dailydip")

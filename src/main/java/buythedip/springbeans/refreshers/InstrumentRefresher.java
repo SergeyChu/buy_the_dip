@@ -2,11 +2,11 @@ package buythedip.springbeans.refreshers;
 
 import buythedip.pojo.dto.InstrumentRefreshResponse;
 import buythedip.pojo.dto.RefreshStatus;
-import buythedip.springbeans.APIRequestsForkJoinPool;
+import buythedip.springbeans.WebRequestsForkJoinPool;
 import buythedip.springbeans.DBService;
-import buythedip.auxiliary.LoggerSingleton;
 import buythedip.pojo.jpa.InstrumentsJPA;
-import buythedip.springbeans.RequestExecutionException;
+import buythedip.auxiliary.RequestExecutionException;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,16 +23,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class InstrumentRefresher {
     private final RefreshStatus status = new RefreshStatus();
     private final AtomicBoolean isRefreshCalled = new AtomicBoolean(false);
-    private final Logger logger = LoggerSingleton.getInstance();
+    private final Logger logger = LogManager.getLogger(InstrumentRefresher.class);
 
     @Autowired
     protected DBService dbService;
 
-    private final APIRequestsForkJoinPool apiThreadPool;
+    private final WebRequestsForkJoinPool webRequestsThreadPool;
 
     @Autowired
-    public InstrumentRefresher(APIRequestsForkJoinPool apiThreadPool) {
-        this.apiThreadPool = apiThreadPool;
+    public InstrumentRefresher(WebRequestsForkJoinPool webRequestsThreadPool) {
+        this.webRequestsThreadPool = webRequestsThreadPool;
     }
 
     public String getCurrentStatus() {
@@ -46,7 +46,7 @@ public class InstrumentRefresher {
         DeferredResult<ResponseEntity<InstrumentRefreshResponse>> result = new DeferredResult<>();
         if (!isRefreshCalled.get()) {
             isRefreshCalled.set(true);
-            apiThreadPool.getForkJoinPool().execute(() -> instrumentRefresh(result, isRefreshCalled));
+            webRequestsThreadPool.getForkJoinPool().execute(() -> instrumentRefresh(result, isRefreshCalled));
         } else {
             logger.info("Instrument refresh is already scheduled");
             result.setResult(ResponseEntity.ok(new InstrumentRefreshResponse(new ArrayList<>(), "Instrument Refresh is already scheduled")));

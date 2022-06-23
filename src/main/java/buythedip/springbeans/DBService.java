@@ -1,7 +1,5 @@
 package buythedip.springbeans;
 
-import buythedip.auxiliary.ApiSingleton;
-import buythedip.auxiliary.LoggerSingleton;
 import buythedip.pojo.jpa.CandlesFreshnessJPA;
 import buythedip.pojo.jpa.CandlesJPA;
 import buythedip.pojo.jpa.InstrumentsJPA;
@@ -9,6 +7,7 @@ import buythedip.springbeans.repositories.InstrumentsRepository;
 import buythedip.pojo.dto.RefreshStatus;
 import buythedip.springbeans.repositories.CandlesFreshnessRepository;
 import buythedip.springbeans.repositories.CandlesRepository;
+import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
@@ -23,7 +22,7 @@ import org.springframework.stereotype.Service;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.tinkoff.piapi.contract.v1.HistoricCandle;
 import ru.tinkoff.piapi.contract.v1.Share;
-import ru.tinkoff.piapi.core.InvestApi;
+
 
 import static ru.tinkoff.piapi.core.utils.DateUtils.timestampToString;
 
@@ -44,15 +43,23 @@ public class DBService {
     private CandlesFreshnessRepository candlesFreshnessRepository;
 
     private Iterable<InstrumentsJPA> internalInstrumentsList;
-    private final Logger logger = LoggerSingleton.getInstance();
+    private final Logger logger = LogManager.getLogger(DBService.class);
     private static final int CANDLES_LOOKBACK_DAYS = 360;
+
+    private buythedip.springbeans.InvestApi investApi;
+
+    @Autowired
+    @SuppressWarnings("unused")
+    void setInvestApi(buythedip.springbeans.InvestApi investApi) {
+        this.investApi = investApi;
+    }
 
     //Retreives all the available instruments from API, updates internal database and returns new ones if appears
     public List<InstrumentsJPA> refreshInstruments(RefreshStatus status) {
-        InvestApi api = ApiSingleton.getInstance();
+
         status.setStatus("Getting list of stocks from API");
 
-        List<Share> externalInstrumentsList = api.getInstrumentsService().getTradableShares().join();
+        List<Share> externalInstrumentsList = investApi.getApi().getInstrumentsService().getTradableShares().join();
         status.setProgress(80);
 
         status.setStatus("Getting list of stocks from local store and evaluating new ones");
@@ -121,15 +128,14 @@ public class DBService {
     }
 
     @SuppressWarnings("unused")
-    public static List<HistoricCandle> getCustomCandles(String figi, Instant dateFrom, Instant dateTo, CandleInterval candleInterval) {
+    public List<HistoricCandle> getCustomCandles(String figi, Instant dateFrom, Instant dateTo, CandleInterval candleInterval) {
         List<HistoricCandle> candles = new ArrayList<>();
         try {
-            candles = ApiSingleton.getInstance()
+            candles = investApi.getApi()
                     .getMarketDataService().getCandles(figi, dateFrom, dateTo, candleInterval).join();
         }
         catch (Exception e) {
-            System.err.println("Got exception");
-            e.printStackTrace();
+            logger.error(e);
         }
 
         return candles;
@@ -155,7 +161,7 @@ public class DBService {
         List<HistoricCandle> candles = new ArrayList<>();
         logger.info(() -> String.format("Getting candles for %s", figi));
         try {
-            return ApiSingleton.getInstance().getMarketDataService().getCandles(figi, fromDate, dateTo, candleInterval).join();
+            return investApi.getApi().getMarketDataService().getCandles(figi, fromDate, dateTo, candleInterval).join();
         }
         catch (Exception e) {
             logger.error("Got exception");

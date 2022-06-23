@@ -1,6 +1,6 @@
 package buythedip.springbeans;
 
-import buythedip.auxiliary.LoggerSingleton;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ForkJoinPoolFactoryBean;
@@ -10,13 +10,13 @@ import java.util.concurrent.ForkJoinPool;
 
 
 @Component
-public class APIRequestsForkJoinPool {
+public class WebRequestsForkJoinPool {
     final ForkJoinPoolFactoryBean forkJoinPoolFactoryBean;
 
-    private final Logger logger = LoggerSingleton.getInstance();
+    private final Logger logger = LogManager.getLogger(WebRequestsForkJoinPool.class);
 
     @Autowired
-    public APIRequestsForkJoinPool() {
+    public WebRequestsForkJoinPool() {
         this.forkJoinPoolFactoryBean = new ForkJoinPoolFactoryBean();
         forkJoinPoolFactoryBean.setUncaughtExceptionHandler((thread, throwable) ->
                 logger.error(String.format("Got exception in thread pool executor %s in thread %s, " +

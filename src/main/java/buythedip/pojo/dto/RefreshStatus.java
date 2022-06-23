@@ -1,6 +1,7 @@
 package buythedip.pojo.dto;
 
-import buythedip.auxiliary.LoggerSingleton;
+import buythedip.springbeans.refreshers.CandleRefresher;
+import org.apache.logging.log4j.LogManager;
 
 public class RefreshStatus {
     private String status;
@@ -12,7 +13,7 @@ public class RefreshStatus {
     }
 
     public void setStatus(String status) {
-        LoggerSingleton.getInstance().debug(status);
+        LogManager.getLogger(RefreshStatus.class).debug(status);
         this.status = status;
     }
 

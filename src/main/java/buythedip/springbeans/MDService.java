@@ -1,12 +1,12 @@
 package buythedip.springbeans;
 
 import buythedip.auxiliary.CandlesComparator;
-import buythedip.auxiliary.LoggerSingleton;
 import buythedip.pojo.jpa.CandlesJPA;
 import buythedip.pojo.jpa.InstrumentsJPA;
 import buythedip.pojo.dto.Trend;
 import buythedip.springbeans.repositories.CandlesRepository;
 import buythedip.springbeans.repositories.InstrumentsRepository;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ public class MDService {
     private CandlesRepository candlesRepository;
 
     private Iterable<InstrumentsJPA> internalInstrumentsList;
-    private final Logger logger = LoggerSingleton.getInstance();
+    private final Logger logger = LogManager.getLogger(MDService.class);
     private final Map<String, String> figiTicker = new HashMap<>();
 
     @SuppressWarnings("unused")
