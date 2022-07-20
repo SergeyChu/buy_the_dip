@@ -1,49 +1,40 @@
 package buythedip.springbeans;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
 import buythedip.pojo.dto.GroupedStatistics;
-import buythedip.pojo.dto.InstrumentRefreshResponse;
-import buythedip.pojo.dto.RefreshResponse;
 import buythedip.pojo.dto.StatisticsContainer;
 import buythedip.pojo.jpa.CandlesFreshnessJPA;
 import buythedip.pojo.jpa.CandlesJPA;
 import buythedip.pojo.jpa.InstrumentsJPA;
-import buythedip.springbeans.repositories.InstrumentsRepository;
-import buythedip.springbeans.refreshers.CandleRefresher;
-import buythedip.springbeans.refreshers.InstrumentRefresher;
 import buythedip.springbeans.repositories.CandlesRepository;
+import buythedip.springbeans.repositories.InstrumentsRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.context.request.async.DeferredResult;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 
 @RestController
 @RequestMapping("api")
 @SuppressWarnings("unused")
-class MainController {
+class ApiController {
     @Autowired
     @SuppressWarnings("unused")
     private InstrumentsRepository instrumentRepository;
     @Autowired
     @SuppressWarnings("unused")
     private CandlesRepository candlesRepository;
-    @Autowired
-    @SuppressWarnings("unused")
-    private InstrumentRefresher instrumentRefresher;
-    @Autowired
-    @SuppressWarnings("unused")
-    private CandleRefresher candleRefresher;
 
     private final StatisticsContainer statistics =
             new StatisticsContainer(0, 0, null, null);
 
-    private final Logger logger = LogManager.getLogger(MainController.class);
+    private final Logger logger = LogManager.getLogger(ApiController.class);
 
     @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("dailydip")
@@ -61,34 +52,6 @@ class MainController {
         this.statistics.setCandlesFreshness(getCandlesFreshness(true));
         this.statistics.setInstrumentsFreshness(getInstrumentsFreshness());
         return this.statistics;
-    }
-
-    @CrossOrigin(origins = "http://localhost:3000")
-    @PostMapping(value = "refresh/instruments")
-    @SuppressWarnings("unused")
-    DeferredResult<ResponseEntity<InstrumentRefreshResponse>> updateInstruments() {
-        return instrumentRefresher.refresh();
-    }
-
-    @CrossOrigin(origins = "http://localhost:3000")
-    @GetMapping("refresh/instruments/updatestatus")
-    @SuppressWarnings("unused")
-    String getInstrumentUpdateStatus() {
-        return instrumentRefresher.getCurrentStatus();
-    }
-
-    @CrossOrigin(origins = "http://localhost:3000")
-    @PostMapping(value = "refresh/candles")
-    @SuppressWarnings("unused")
-    DeferredResult<ResponseEntity<RefreshResponse<CandlesJPA>>> updateCandles() {
-        return candleRefresher.refresh();
-    }
-
-    @CrossOrigin(origins = "http://localhost:3000")
-    @GetMapping("refresh/candles/updatestatus")
-    @SuppressWarnings("unused")
-    String getCandleUpdateStatus() {
-        return candleRefresher.getCurrentStatus();
     }
 
     private List<CandlesJPA> getDailyDip(Integer pPercentageThresholdDip, Integer pPercThresholdRestore) {

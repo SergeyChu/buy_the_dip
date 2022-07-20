@@ -37,7 +37,7 @@ class StatInstrumentCandles extends React.Component {
       if (!this.state.isInstrumentRefreshActive) {
         break;
       } 
-      fetch('http://localhost:8080/api/refresh/instruments/updatestatus')
+      fetch('http://localhost:8080/refresh/instruments/updatestatus')
       .then(response => response.json())
       .then(data => {
         console.log(data);
@@ -62,7 +62,7 @@ class StatInstrumentCandles extends React.Component {
       if (!this.state.isCandlesRefreshActive) {
         break;
       } 
-      fetch('http://localhost:8080/api/refresh/candles/updatestatus')
+      fetch('http://localhost:8080/refresh/candles/updatestatus')
       .then(response => response.json())
       .then(data => {
         console.log(data);
@@ -94,7 +94,7 @@ class StatInstrumentCandles extends React.Component {
       instrumentsFetched: []
     }, this.pollInstrumentsRefresh); 
   
-    fetch('http://localhost:8080/api/refresh/instruments', postRequestOptions)
+    fetch('http://localhost:8080/refresh/instruments', postRequestOptions)
     .then(response => response.json())
     .then(rspJson => {
       console.log(rspJson)
@@ -140,7 +140,7 @@ class StatInstrumentCandles extends React.Component {
       candlesRefreshProgress: 0
     }, this.pollCandlesRefresh); 
   
-    fetch('http://localhost:8080/api/refresh/candles', postRequestOptions)
+    fetch('http://localhost:8080/refresh/candles', postRequestOptions)
     .then(response => response.json())
     .then(rspJson => {
       console.log(rspJson)
