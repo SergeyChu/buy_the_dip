@@ -1,28 +1,29 @@
 package buythedip.springbeans;
 
+import buythedip.pojo.dto.RefreshStatus;
 import buythedip.pojo.jpa.CandlesFreshnessJPA;
 import buythedip.pojo.jpa.CandlesJPA;
 import buythedip.pojo.jpa.InstrumentsJPA;
-import buythedip.springbeans.repositories.InstrumentsRepository;
-import buythedip.pojo.dto.RefreshStatus;
 import buythedip.springbeans.repositories.CandlesFreshnessRepository;
 import buythedip.springbeans.repositories.CandlesRepository;
+import buythedip.springbeans.repositories.InstrumentsRepository;
 import org.apache.logging.log4j.LogManager;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.tinkoff.piapi.contract.v1.HistoricCandle;
 import ru.tinkoff.piapi.contract.v1.Share;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static ru.tinkoff.piapi.core.utils.DateUtils.timestampToString;
 
@@ -89,27 +90,13 @@ public class DBService {
         status.setStatus("Refresh of candles is initiated");
 
         instrumentRepository.findAll().forEach(instrumentJPA -> {
-            boolean isInfoObtained = false;
-            List<HistoricCandle> tempCandles = new ArrayList<>();
-            do {
-                try {
-                    status.setStatus(String.format("Retreiving candles for %s %d/%d", instrumentJPA.getTicker(),
-                            updatedInstruments.longValue(), totalInstruments.longValue()));
-                    tempCandles = new ArrayList<>(getCandles(instrumentJPA.getFigi(), CandleInterval.CANDLE_INTERVAL_DAY, Instant.now().minus(CANDLES_LOOKBACK_DAYS, ChronoUnit.DAYS)));
-                    tempCandles.sort(Comparator.comparing(candle -> timestampToString(candle.getTime())));
-                    isInfoObtained = true;
-                }
-                catch (Exception e) {
-                    logger.warn("Breached the API limit, waiting 1 minute and retrying");
-                    e.printStackTrace();
-                    try {
-                        TimeUnit.MINUTES.sleep(1);
-                    } catch (InterruptedException interruptedException) {
-                        interruptedException.printStackTrace();
-                        Thread.currentThread().interrupt();
-                    }
-                }
-            } while (!isInfoObtained);
+            List<HistoricCandle> tempCandles;
+
+            status.setStatus(String.format("Retreiving candles for %s %d/%d", instrumentJPA.getTicker(),
+                    updatedInstruments.longValue(), totalInstruments.longValue()));
+            tempCandles = new ArrayList<>(getCandles(instrumentJPA.getFigi(), CandleInterval.CANDLE_INTERVAL_DAY,
+                    Instant.now().minus(CANDLES_LOOKBACK_DAYS, ChronoUnit.DAYS)));
+            tempCandles.sort(Comparator.comparing(candle -> timestampToString(candle.getTime())));
 
             if (storeCandles(tempCandles, instrumentJPA.getFigi(), CandleInterval.CANDLE_INTERVAL_DAY.name())) {
                 logger.debug(() -> String.format("Saved candle data into DB for %s", instrumentJPA.getTicker()));
@@ -158,16 +145,8 @@ public class DBService {
 
     private List<HistoricCandle> getCandles(String figi, CandleInterval candleInterval, Instant fromDate) {
         Instant dateTo = Instant.now();
-        List<HistoricCandle> candles = new ArrayList<>();
         logger.info(() -> String.format("Getting candles for %s", figi));
-        try {
-            return investApi.getApi().getMarketDataService().getCandles(figi, fromDate, dateTo, candleInterval).join();
-        }
-        catch (Exception e) {
-            logger.error("Got exception");
-            e.printStackTrace();
-        }
-        return candles;
+        return investApi.getApi().getMarketDataService().getCandles(figi, fromDate, dateTo, candleInterval).join();
     }
 
     private boolean storeCandles(List<HistoricCandle> candlesToStore, String figi, String interval) {

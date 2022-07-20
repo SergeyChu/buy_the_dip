@@ -1,11 +1,11 @@
 package buythedip.springbeans.refreshers;
 
-import buythedip.pojo.dto.RefreshStatus;
-import buythedip.springbeans.WebRequestsForkJoinPool;
-import buythedip.springbeans.DBService;
-import buythedip.pojo.jpa.CandlesJPA;
-import buythedip.pojo.dto.RefreshResponse;
 import buythedip.auxiliary.RequestExecutionException;
+import buythedip.pojo.dto.RefreshResponse;
+import buythedip.pojo.dto.RefreshStatus;
+import buythedip.pojo.jpa.CandlesJPA;
+import buythedip.springbeans.DBService;
+import buythedip.springbeans.WebRequestsForkJoinPool;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
@@ -64,7 +64,7 @@ public class CandleRefresher {
             logger.info("Completed candles refresh");
             isRefreshCalled.set(false);
         } catch (CompletionException completionException) {
-            String message = String.format("Got error during instruments refresh: %s ", completionException.getMessage());
+            String message = String.format("Got error during candles refresh: %s ", completionException.getMessage());
             logger.error(message);
             status.setProgress(0);
             status.setStatus(message);

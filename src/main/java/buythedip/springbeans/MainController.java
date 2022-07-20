@@ -24,6 +24,7 @@ import org.springframework.web.context.request.async.DeferredResult;
 
 
 @RestController
+@RequestMapping("api")
 @SuppressWarnings("unused")
 class MainController {
     @Autowired
@@ -45,14 +46,14 @@ class MainController {
     private final Logger logger = LogManager.getLogger(MainController.class);
 
     @CrossOrigin(origins = "http://localhost:3000")
-    @GetMapping("/api/dailydip")
+    @GetMapping("dailydip")
     @SuppressWarnings("unused")
     List<CandlesJPA> getCandles() {
         return getDailyDip(20, 10);
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
-    @GetMapping("/api/statistics")
+    @GetMapping("statistics")
     @SuppressWarnings("unused")
     StatisticsContainer getStat() {
         this.statistics.setTotalCandles(getTotalCandles(true));
@@ -63,37 +64,31 @@ class MainController {
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
-    @PostMapping(value = "/api/refresh/instruments")
+    @PostMapping(value = "refresh/instruments")
     @SuppressWarnings("unused")
     DeferredResult<ResponseEntity<InstrumentRefreshResponse>> updateInstruments() {
         return instrumentRefresher.refresh();
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
-    @GetMapping("/api/refresh/instruments/updatestatus")
+    @GetMapping("refresh/instruments/updatestatus")
     @SuppressWarnings("unused")
     String getInstrumentUpdateStatus() {
         return instrumentRefresher.getCurrentStatus();
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
-    @PostMapping(value = "/api/refresh/candles")
+    @PostMapping(value = "refresh/candles")
     @SuppressWarnings("unused")
     DeferredResult<ResponseEntity<RefreshResponse<CandlesJPA>>> updateCandles() {
         return candleRefresher.refresh();
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
-    @GetMapping("/api/refresh/candles/updatestatus")
+    @GetMapping("refresh/candles/updatestatus")
     @SuppressWarnings("unused")
     String getCandleUpdateStatus() {
         return candleRefresher.getCurrentStatus();
-    }
-
-    @RequestMapping("/")
-    @SuppressWarnings("unused")
-    public String index() {
-        return "I'm working!";
     }
 
     private List<CandlesJPA> getDailyDip(Integer pPercentageThresholdDip, Integer pPercThresholdRestore) {
